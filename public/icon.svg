@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" rx="128" fill="#070709"/>
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+  </defs>
+  <!-- Outer Abstract Diamond / Vault Emblem -->
+  <polygon points="256,72 400,216 256,440 112,216" fill="none" stroke="url(#gold)" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Inner Sacred Geometry Interlocking Ring -->
+  <polygon points="256,128 352,224 256,384 160,224" fill="none" stroke="url(#goldGlow)" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Central Minimalist Keyhole / Monogram Element -->
+  <circle cx="256" cy="220" r="28" fill="url(#gold)"/>
+  <polygon points="244,228 268,228 274,310 238,310" fill="url(#gold)"/>
+</svg>

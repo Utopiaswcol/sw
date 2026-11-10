@@ -1,0 +1,8 @@
+{
+  "name": "Aethel Vault • Club Social & Afinidad ENM",
+  "description": "Plataforma de afinidad relacional 5D, agenda de eventos privados y bóveda cifrada para parejas y personas en no monogamia ética.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
