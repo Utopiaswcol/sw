@@ -6,6 +6,20 @@ import path from 'path';
 import {defineConfig, Plugin} from 'vite';
 
 // LINT.IfChange(aistudio_media_plugin)
+function cryptoShimPlugin(): Plugin {
+  const appShim = path.resolve(__dirname, 'src/shims/cryptoBrowser.ts');
+  const nativeShim = path.resolve(__dirname, 'src/shims/cryptoNative.ts');
+  return {
+    name: 'crypto-shim-for-app',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source !== 'crypto' && source !== 'node:crypto') return null;
+      const fromLibrary = Boolean(importer && importer.replace(/\\/g, '/').includes('/node_modules/'));
+      return fromLibrary ? nativeShim : appShim;
+    },
+  };
+}
+
 function aistudioMediaPlugin(): Plugin {
   return {
     name: 'vite-plugin-aistudio-media',
@@ -70,6 +84,7 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       aistudioMediaPlugin(),
+      cryptoShimPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
@@ -126,7 +141,6 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-        crypto: path.resolve(__dirname, 'src/shims/cryptoBrowser.ts'),
       },
     },
     server: {
