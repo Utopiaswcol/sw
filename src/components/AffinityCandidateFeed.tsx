@@ -270,6 +270,28 @@ export const AffinityCandidateFeed: React.FC<AffinityCandidateFeedProps> = ({
   const [swipeOffset, setSwipeOffset] = useState<number>(0);
   const [isSwiping, setIsSwiping] = useState<boolean>(false);
 
+  const localEncounterCandidates = () =>
+    SYSTEM_10_ADDITIONAL_CANDIDATES
+      .filter((c: any) => {
+        const cId = c.candidateId || c.id;
+        const cAlias = (c.alias || '').toLowerCase();
+        return (
+          cId !== userId &&
+          cId !== 'carlos_sofia_vip' &&
+          !cAlias.includes('carlos & sofía') &&
+          !cAlias.includes('carlos y sofía')
+        );
+      })
+      .map((c, idx) => ({
+        ...c,
+        affinityPercentage: c.affinityPercentage,
+        proximityLabel: '📍 Coincidencia Directa',
+        cosineDistance: c.cosineDistance,
+        vetoCheckPassed: true,
+        hasVaultPermission: false,
+        privacyMode: c.privacyMode || (idx % 3 === 1 ? 'blur_discreet' : 'public')
+      }));
+
   const loadCandidates = async () => {
     setLoading(true);
     try {
@@ -332,32 +354,11 @@ export const AffinityCandidateFeed: React.FC<AffinityCandidateFeedProps> = ({
         });
         setCandidates(augmented);
       } else {
-        // Fallback robusto excluyendo siempre el perfil del usuario autenticado
-        setCandidates(
-          SYSTEM_10_ADDITIONAL_CANDIDATES
-            .filter((c: any) => {
-              const cId = c.candidateId || c.id;
-              const cAlias = (c.alias || '').toLowerCase();
-              return (
-                cId !== userId &&
-                cId !== 'carlos_sofia_vip' &&
-                !cAlias.includes('carlos & sofía') &&
-                !cAlias.includes('carlos y sofía')
-              );
-            })
-            .map((c, idx) => ({
-              ...c,
-              affinityPercentage: c.affinityPercentage,
-              proximityLabel: '📍 Coincidencia Directa',
-              cosineDistance: c.cosineDistance,
-              vetoCheckPassed: true,
-              hasVaultPermission: false,
-              privacyMode: c.privacyMode || (idx % 3 === 1 ? 'blur_discreet' : 'public')
-            }))
-        );
+        setCandidates(localEncounterCandidates());
       }
     } catch (err) {
       console.warn('Error cargando candidatos:', err);
+      setCandidates(localEncounterCandidates());
     } finally {
       setLoading(false);
     }

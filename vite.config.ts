@@ -110,9 +110,23 @@ export default defineConfig(() => {
         }
       })
     ],
+    define: {
+      'process.env.WOMPI_INTEGRITY_SECRET': 'undefined',
+      'process.env.WOMPI_EVENT_SECRET': 'undefined',
+      'process.env.WOMPI_PUBLIC_KEY': 'undefined',
+      'process.env.SUPABASE_URL': 'undefined',
+      'process.env.SUPABASE_SERVICE_ROLE_KEY': 'undefined',
+      'process.env.SUPABASE_ANON_KEY': 'undefined',
+      'process.env.SUPABASE_PUBLISHABLE_KEY': 'undefined',
+      'process.env.VITE_SUPABASE_URL': 'undefined',
+      'process.env.VITE_SUPABASE_ANON_KEY': 'undefined',
+      'process.env.VITE_SUPABASE_PUBLISHABLE_KEY': 'undefined',
+      'process.env.MEDIA_SECRET_KEY': 'undefined',
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        crypto: path.resolve(__dirname, 'src/shims/cryptoBrowser.ts'),
       },
     },
     server: {

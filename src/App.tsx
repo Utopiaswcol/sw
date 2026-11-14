@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Vector5D, VetoesDict, PracticesDict, EvaluationResult } from './types';
 import { TEST_PRESETS, INITIAL_VETOES, INITIAL_PRACTICES } from './data';
 import { evaluateRelationalCompatibilityLocal } from './utils';
@@ -13,8 +13,8 @@ import { PythonTerminalView } from './components/PythonTerminalView';
 import { PythonCodeViewer } from './components/PythonCodeViewer';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { MediaVaultManager } from './components/MediaVaultManager';
-import { AffinityCandidateFeed } from './components/AffinityCandidateFeed';
-import { DualProfileDashboard } from './components/DualProfileDashboard';
+import { SwayExplore } from './components/SwayExplore';
+import { SwayProfile } from './components/SwayProfile';
 import { ChatAndBillingView } from './components/ChatAndBillingView';
 import { PrivateEventsAgenda } from './components/PrivateEventsAgenda';
 import { SupabaseSqlViewer } from './components/SupabaseSqlViewer';
@@ -24,15 +24,77 @@ import { DecoyScreenProvider } from './components/DecoyScreen';
 import { QuickProfileSwitchModal } from './components/QuickProfileSwitchModal';
 import { SPECIAL_TEST_PROFILES, TestProfile } from './data/profilesData';
 import { InteractionNotificationDrawer } from './components/InteractionNotificationDrawer';
-import { DeveloperVerificationGate } from './components/DeveloperVerificationGate';
+import { SwayCover } from './components/SwayCover';
+import { SwayJoin } from './components/SwayJoin';
+import { SwayChat } from './components/SwayChat';
+import { SwayDoor } from './components/SwayDoor';
+import {
+  allowance,
+  loadAccount,
+  loadPlan,
+  loadThreads,
+  personFromAccount,
+  saveAccount,
+  savePlan,
+  startsUsed,
+  type SwayAccount,
+  type SwayPlan
+} from './sway/account';
+import type { SystemCandidate } from './data/profilesData';
 import { Sparkles, ShieldAlert, CheckCircle2, Users, User, RefreshCw, Zap, ArrowRight, Layers } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainAppTab>('explore');
+  const [doorOpen, setDoorOpen] = useState<boolean>(() => sessionStorage.getItem('sway_door') === 'open');
+  const openDoor = () => {
+    sessionStorage.setItem('sway_door', 'open');
+    setActiveTab('explore');
+    setDoorOpen(true);
+  };
   const [activeProfile, setActiveProfile] = useState<TestProfile>(SPECIAL_TEST_PROFILES.pareja1);
   const [isCoupleMode, setIsCoupleMode] = useState<boolean>(true);
   const [isQuickSwitchOpen, setIsQuickSwitchOpen] = useState<boolean>(false);
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState<boolean>(false);
+  const [planFor, setPlanFor] = useState<SystemCandidate | null>(null);
+  const [cupoLleno, setCupoLleno] = useState(false);
+  const [chatWith, setChatWith] = useState<SystemCandidate | null>(null);
+  const [joining, setJoining] = useState(false);
+  const [account, setAccount] = useState<SwayAccount | null>(() => loadAccount());
+  const [plan, setPlan] = useState<SwayPlan | null>(() => loadPlan());
+  const [showPropose, setShowPropose] = useState(false);
+  const [doorMode, setDoorMode] = useState<'list' | 'detail' | 'form'>('list');
+  const reportDoor = useCallback((mode: 'list' | 'detail' | 'form') => setDoorMode(mode), []);
+  const onSwayTab = activeTab === 'explore' || activeTab === 'dual_profile';
+  const showMenu = onSwayTab && !chatWith && !(showPropose && doorMode !== 'list');
+
+  const openChat = (person: SystemCandidate) => {
+    const existing = loadThreads()[person.candidateId];
+    const role = account?.role || activeProfile.role;
+    const room = allowance(role, plan);
+    if (!existing?.counted && startsUsed() >= room) {
+      if (!plan && role === 'solo_male') setPlanFor(person);
+      else setCupoLleno(true);
+      return;
+    }
+    setChatWith(person);
+  };
+
+  const activatePlan = (next: SwayPlan) => {
+    savePlan(next);
+    setPlan(next);
+    const person = planFor;
+    setPlanFor(null);
+    if (person) setChatWith(person);
+  };
+
+  const finishJoin = (next: SwayAccount) => {
+    saveAccount(next);
+    setAccount(next);
+    setActiveProfile(personFromAccount(next));
+    setIsCoupleMode(next.role === 'couple');
+    setJoining(false);
+    openDoor();
+  };
 
   // Secret Developer Mode state
   const [isDevMode, setIsDevMode] = useState<boolean>(() => {
@@ -159,12 +221,21 @@ export default function App() {
   };
 
   return (
-    <DeveloperVerificationGate>
-      <DecoyScreenProvider userPin={userPin}>
-        <PinLockCurtain isEnabled={isPinLockEnabled} userPin={userPin} onSwitchProfileByPin={handleSwitchProfileByPin}>
+    <DecoyScreenProvider userPin={userPin}>
+        <PinLockCurtain isEnabled={isPinLockEnabled && doorOpen} userPin={userPin} onSwitchProfileByPin={handleSwitchProfileByPin}>
+        {!doorOpen && !joining && (
+          <SwayCover
+            onEnter={() => (loadAccount() ? openDoor() : setJoining(true))}
+            onCreate={() => setJoining(true)}
+          />
+        )}
+        {!doorOpen && joining && (
+          <SwayJoin onDone={finishJoin} onBack={() => setJoining(false)} />
+        )}
+        {doorOpen && (
         <div className="w-full h-dvh bg-[#030305] text-slate-100 font-sans selection:bg-rose-500 selection:text-white flex flex-row overflow-hidden">
           {/* PC Left Desktop Sidebar (Visible on md and above) */}
-          <DesktopSidebar
+          {isDevMode && <DesktopSidebar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             isCoupleMode={isCoupleMode}
@@ -175,12 +246,12 @@ export default function App() {
             activeAlias={activeProfile.alias}
             onOpenQuickSwitch={() => setIsQuickSwitchOpen(true)}
             onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
-          />
+          />}
 
           {/* Main App Layout Area */}
           <div className="flex-1 flex flex-col h-full overflow-hidden relative">
             {/* Mobile Header (Hidden on md and above) */}
-            <MobileHeader
+            {(isDevMode || (activeTab !== 'explore' && activeTab !== 'dual_profile')) && <MobileHeader
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               isCoupleMode={isCoupleMode}
@@ -190,10 +261,10 @@ export default function App() {
               activeAlias={activeProfile.alias}
               onOpenQuickSwitch={() => setIsQuickSwitchOpen(true)}
               onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
-            />
+            />}
 
             {/* Scrollable Main Content Container */}
-            <main className="flex-1 overflow-y-auto scroll-touch p-3 sm:p-5 md:p-8 pb-28 md:pb-8 max-w-7xl mx-auto w-full">
+            <main className={`flex-1 overflow-y-auto scroll-touch w-full ${activeTab === 'explore' || activeTab === 'dual_profile' ? 'mx-auto w-full max-w-md self-center bg-black p-0' : 'max-w-7xl mx-auto p-3 sm:p-5 md:p-8 pb-28 md:pb-8'}`}>
               {/* Developer Simulator View (Only if isDevMode) */}
               {isDevMode && activeTab === 'simulator' && (
                 <div className="space-y-6">
@@ -392,11 +463,7 @@ export default function App() {
 
               {/* Primary View 1: Explorar & Match Feed */}
               {activeTab === 'explore' && (
-                <AffinityCandidateFeed
-                  userId={activeProfile.id}
-                  userRole={activeProfile.role}
-                  onNavigateToTab={setActiveTab}
-                />
+                <SwayExplore showBars={plan !== null} onMessage={openChat} />
               )}
 
               {/* Primary View 2: Agenda & Private Circles SW */}
@@ -413,11 +480,12 @@ export default function App() {
 
               {/* Primary View 6: Mi Perfil Dual */}
               {activeTab === 'dual_profile' && (
-                <DualProfileDashboard
-                  isPinLockEnabled={isPinLockEnabled}
-                  setIsPinLockEnabled={setIsPinLockEnabled}
-                  userPin={userPin}
-                  setUserPin={setUserPin}
+                <SwayProfile
+                  person={account ? personFromAccount(account) : activeProfile}
+                  mine
+                  mineNote={account && account.role !== 'solo_male'
+                    ? 'Puedes empezar cinco conversaciones sin el plan, y contestar las que te lleguen. El plan sube el cupo a quince.'
+                    : 'Puedes recibir y contestar sin el plan. Escribir primero es el plan: 20.000 al mes o 180.000 al año.'}
                 />
               )}
 
@@ -429,11 +497,60 @@ export default function App() {
             </main>
 
             {/* Mobile Bottom Nav Bar (Hidden on md and above) */}
-            <div className="md:hidden">
-              <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} unreadChatCount={1} />
-            </div>
+            {showMenu && (
+              <BottomNav
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                doorActive={showPropose}
+                onLeave={() => setShowPropose(false)}
+                onNotify={() => setIsNotificationDrawerOpen(true)}
+                onPropose={() => setShowPropose(true)}
+              />
+            )}
+            {planFor && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-8" onClick={() => setPlanFor(null)}>
+                <div className="w-full max-w-md rounded-3xl border border-[#c4a574]/30 bg-[#120e0c] p-5 text-white" onClick={(e) => e.stopPropagation()}>
+                  <p className="sway-kicker">SWAY</p>
+                  <p className="mt-2 font-sway text-3xl">El plan</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/75">
+                    Escribirle a {planFor.alias} abre el plan. Quince conversaciones nuevas al mes. Contestar no se cobra. El cobro real entra con Wompi al publicar. Aquí el plan queda activo en este teléfono.
+                  </p>
+                  <button type="button" className="sway-clay mt-4 h-12 w-full rounded-2xl" onClick={() => activatePlan('mes')}>
+                    20.000 al mes
+                  </button>
+                  <button type="button" className="mt-2 h-12 w-full rounded-2xl border border-[#c4a574]/70" onClick={() => activatePlan('ano')}>
+                    180.000 al año
+                  </button>
+                </div>
+              </div>
+            )}
+            {cupoLleno && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-8" onClick={() => setCupoLleno(false)}>
+                <div className="w-full max-w-md rounded-3xl border border-[#c4a574]/30 bg-[#120e0c] p-5 text-white" onClick={(e) => e.stopPropagation()}>
+                  <p className="sway-kicker">SWAY</p>
+                  <p className="mt-2 font-sway text-3xl">Cupo del mes</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/75">
+                    Ya usaste las quince conversaciones nuevas. Se renuevan con el mes. Las que ya abriste siguen abiertas, y contestar no se cobra.
+                  </p>
+                  <button type="button" className="sway-clay mt-4 h-12 w-full rounded-2xl" onClick={() => setCupoLleno(false)}>
+                    Volver
+                  </button>
+                </div>
+              </div>
+            )}
+            {chatWith && <SwayChat person={chatWith} onBack={() => setChatWith(null)} />}
+            {showPropose && (
+              <SwayDoor
+                viewerName={account ? (account.role === 'couple' ? `${account.name} & ${account.partnerName}` : account.name) : activeProfile.alias}
+                role={account?.role || activeProfile.role}
+                city={account?.city || 'Bogotá'}
+                onClose={() => setShowPropose(false)}
+                onMode={reportDoor}
+              />
+            )}
           </div>
         </div>
+        )}
 
         {/* Global Test Profile Selector Modal */}
         <QuickProfileSwitchModal
@@ -455,7 +572,6 @@ export default function App() {
         />
       </PinLockCurtain>
     </DecoyScreenProvider>
-    </DeveloperVerificationGate>
   );
 }
 

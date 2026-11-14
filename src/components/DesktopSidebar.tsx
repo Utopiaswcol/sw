@@ -66,7 +66,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   };
 
   const mainNavItems = [
-    { id: 'explore' as MainAppTab, label: 'Explorar Afinidad', icon: Compass, badge: null },
+    { id: 'explore' as MainAppTab, label: 'Encuentros', icon: Compass, badge: null },
     { id: 'agenda' as MainAppTab, label: 'Agenda & Eventos', icon: CalendarDays, badge: 'NUEVO' },
     { id: 'media' as MainAppTab, label: 'Bóveda Cifrada', icon: KeyRound, badge: null },
     { id: 'chat' as MainAppTab, label: 'Mensajes Efímeros', icon: MessageCircle, badge: unreadChatCount > 0 ? unreadChatCount : null },
@@ -104,7 +104,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                   VAULT
                 </span>
               </h1>
-              <p className="text-[10px] text-neutral-400 font-medium">Club Social ENM Colombia</p>
+              <p className="text-[10px] text-neutral-400 font-medium">Encuentros con acuerdo</p>
             </div>
           </div>
 
